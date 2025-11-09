@@ -79,3 +79,5 @@ Survival\_Time,Event\_Status,Treatment\_Group,Sex,Age,Stage
 * Sex: A second character/factor column (can be used for grouping).  
 * Age: A numeric column (can be used for a numeric filter).  
 * Stage: A character/factor column (can of be used for grouping or a categorical filter).
+
+Try this app by using 'example data.csv'!
