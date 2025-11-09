@@ -72,3 +72,5 @@ Survival\_Time,Event\_Status,Treatment\_Group
 * Survival\_Time: Numeric time to event.  
 * Event\_Status: Numeric status, where 1 \= event occurred and 0 \= censored.  
 * Treatment\_Group: A character or factor column for comparison.
+
+Use "survival data.csv" to try this app!
