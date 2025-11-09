@@ -40,16 +40,6 @@ shiny::runApp()
 
 The application will launch in a new window or in your web browser.
 
-## **Publishing to GitHub**
-
-This app is fully self-contained in the app.R file, making it easy to share on GitHub. You can publish your project directory (containing app.R and this README.md) to a public GitHub repository.
-
-Once it is on GitHub, others can run your app directly from the R console (after installing the required packages) by using the shiny::runGitHub function:
-
-\# Example command to run from GitHub:  
-\# Replace 'YourUsername/YourRepoName' with your actual GitHub repo path  
-shiny::runGitHub("YourUsername/YourRepoName")
-
 ## **How to Use the App**
 
 1. **Upload Data:** Click the "Choose CSV File" button and select your data file.  
