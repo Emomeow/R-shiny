@@ -2,29 +2,27 @@
 
 # 1. LOAD LIBRARIES
 # -----------------
-# Make sure these are installed: install.packages(c("shiny", "survival", "survminer"))
 library(shiny)
 library(survival)
 library(survminer)
+library(ggplot2)
+library(ggpubr)
+library(shinycssloaders) # For the loading spinner
 
 # 2. DEFINE USER INTERFACE (UI)
 # ----------------------------
 ui <- fluidPage(
-  # Set a theme for a cleaner look
-  theme = shinythemes::shinytheme("flatly"),
+  # App title
+  titlePanel("Kaplan-Meier Survival Plotter"),
   
-  # Application title
-  titlePanel("Kaplan-Meier Survival Curve Generator"),
-  
-  # Sidebar layout with input and output definitions
+  # Sidebar layout
   sidebarLayout(
     
-    # --- Sidebar Panel for Inputs ---
+    # Sidebar panel for inputs
     sidebarPanel(
-      width = 3,
       
       # Input: File upload
-      fileInput("file1", "Upload CSV File",
+      fileInput("file1", "Choose CSV File",
                 multiple = FALSE,
                 accept = c("text/csv",
                            "text/comma-separated-values,text/plain",
@@ -33,61 +31,58 @@ ui <- fluidPage(
       # Horizontal line
       tags$hr(),
       
-      # Input: Checkbox for header
-      checkboxInput("header", "File contains header", TRUE),
+      # Input: Select time variable
+      selectInput("time_col", "Select Time to Event Column",
+                  choices = NULL, selected = NULL),
       
-      # Input: Select separator
-      radioButtons("sep", "Column Separator",
-                   choices = c(Comma = ",",
-                               Semicolon = ";",
-                               Tab = "\t"),
-                   selected = ","),
+      # Input: Select status variable
+      selectInput("status_col", "Select Censor/Status Column",
+                  choices = NULL, selected = NULL),
       
-      # Horizontal line
-      tags$hr(),
-      
-      # --- Dynamic UI for Column Selection ---
-      # These inputs are generated in the server
-      
-      # Input: Select time column
-      uiOutput("time_col_ui"),
-      
-      # Input: Select status column
-      uiOutput("status_col_ui"),
-      
-      # Input: Select group column (optional)
-      uiOutput("group_col_ui"),
+      # Action button
+      actionButton("run", "Run Analysis", icon = icon("play")),
       
       # Horizontal line
       tags$hr(),
       
-      # Action button to trigger the analysis
-      actionButton("run_analysis", "Run Analysis", icon = icon("chart-line"), class = "btn-primary btn-lg")
+      # Input: Select group variable(s) - NOW MULTI-SELECT
+      h4("Grouping (Interactive)"),
+      selectInput("group_cols", "Select Group Column(s) (Optional)",
+                  choices = NULL, selected = NULL, multiple = TRUE),
+      
+      # Horizontal line
+      tags$hr(),
+      
+      # --- UPDATED: MULTI-FILTERING SECTION ---
+      h4("Data Filtering (Interactive)"),
+      
+      # Numeric filter (now multi-select)
+      selectInput("filter_num_cols", "Filter by Numeric Column(s):",
+                  choices = c("None" = "", NULL), multiple = TRUE),
+      uiOutput("filter_num_sliders_ui"), # Dynamic sliders (plural)
+      
+      # Categorical filter (now multi-select)
+      selectInput("filter_cat_cols", "Filter by Categorical Column(s):",
+                  choices = c("None" = "", NULL), multiple = TRUE),
+      uiOutput("filter_cat_checkboxes_ui"), # Dynamic checkboxes (plural)
+      
+      width = 3
     ),
     
-    # --- Main Panel for Outputs ---
+    # Main panel for displaying outputs
     mainPanel(
-      width = 9,
-      # Use tabs for a clean output
-      tabsetPanel(type = "tabs",
-                  tabPanel("K-M Plot", 
-                           h4("Kaplan-Meier Survival Plot"),
-                           p("The plot shows the survival probability over time. If a group is selected, it will display separate curves and a log-rank p-value."),
-                           # Output: K-M Plot
-                           plotOutput("km_plot", height = "500px")
-                  ),
-                  tabPanel("Survival Summary", 
-                           h4("Survival Fit Summary"),
-                           p("This table provides the survival probabilities, standard errors, and confidence intervals at different time points."),
-                           # Output: Summary table
-                           verbatimTextOutput("surv_summary")
-                  ),
-                  tabPanel("Data Preview",
-                           h4("Uploaded Data (First 10 Rows)"),
-                           p("A quick preview of your data to ensure it loaded correctly."),
-                           # Output: Data table preview
-                           tableOutput("data_preview")
-                  )
+      tabsetPanel(
+        type = "tabs",
+        tabPanel("Kaplan-Meier Plot", 
+                 # Add a spinner while plot is loading
+                 shinycssloaders::withSpinner(
+                   plotOutput("km_plot", height = "500px"),
+                   type = 6
+                 )
+        ),
+        tabPanel("Model Summary", 
+                 verbatimTextOutput("fit_summary")
+        )
       )
     )
   )
@@ -97,167 +92,299 @@ ui <- fluidPage(
 # ----------------------
 server <- function(input, output, session) {
   
-  # --- Reactive: Read Data ---
-  # Reactively reads the uploaded file
-  data <- reactive({
-    # Require the file to be uploaded
+  # Reactive: Read the uploaded file
+  file_data <- reactive({
     req(input$file1)
-    
-    tryCatch(
-      {
-        df <- read.csv(input$file1$datapath,
-                       header = input$header,
-                       sep = input$sep)
-      },
-      error = function(e) {
-        # Return a safe error if file is bad
-        stop(safeError(e))
-      }
-    )
-    
-    return(df)
-  })
-  
-  # --- Dynamic UI Generation ---
-  
-  # Get column names once data is loaded
-  column_names <- reactive({
-    req(data())
-    names(data())
-  })
-  
-  # Render the Time Column selector
-  output$time_col_ui <- renderUI({
-    req(column_names())
-    selectInput("time_col", "Select Time to Event Column:", 
-                choices = column_names(), selected = column_names()[1])
-  })
-  
-  # Render the Status Column selector
-  output$status_col_ui <- renderUI({
-    req(column_names())
-    # Try to guess the second column as status
-    selected_status <- if (length(column_names()) > 1) column_names()[2] else column_names()[1]
-    selectInput("status_col", "Select Censor/Status Column:", 
-                choices = column_names(), selected = selected_status)
-  })
-  
-  # Render the Group Column selector
-  output$group_col_ui <- renderUI({
-    req(column_names())
-    # Add "None" as the first option
-    selectInput("group_col", "Select Group Column (Optional):", 
-                choices = c("None", column_names()), selected = "None")
-  })
-  
-  # --- Data Preview Output ---
-  output$data_preview <- renderTable({
-    req(data())
-    head(data(), 10)
-  })
-  
-  # --- Reactive: Run Analysis ---
-  # This block runs ONLY when the action button is pressed
-  analysis_results <- eventReactive(input$run_analysis, {
-    
-    # Require all necessary inputs
-    req(data(), input$time_col, input$status_col, input$group_col)
-    
-    # Create a local copy of the data
-    df <- data()
-    
-    # --- Data Preparation & Formula Creation ---
-    # We must wrap column names in ` ` in case they have spaces or special chars
-    # And ensure they are the correct data type
     tryCatch({
-      time_var <- `[[`(df, input$time_col)
-      if (!is.numeric(time_var)) {
-        time_var <- as.numeric(as.character(time_var))
-      }
-      
-      status_var <- `[[`(df, input$status_col)
-      if (!is.integer(status_var)) {
-        status_var <- as.integer(as.character(status_var))
-      }
-      
-      # Build the survival formula
-      if (input$group_col == "None") {
-        # No grouping variable
-        formula_str <- "Surv(time_var, status_var) ~ 1"
-        form <- as.formula(formula_str)
-      } else {
-        # With grouping variable
-        group_var <- as.factor(`[[`(df, input$group_col))
-        df$group_var <- group_var # Add to data frame for survfit
-        
-        formula_str <- "Surv(time_var, status_var) ~ group_var"
-        form <- as.formula(formula_str)
-      }
-      
-      # --- Model Fitting ---
-      fit <- survfit(form, data = df)
-      
-      # Return a list of results
-      list(
-        fit = fit,
-        data = df, # Data now includes a 'group_var' if one was selected
-        formula = form,
-        group_var_name = input$group_col
-      )
+      df <- read.csv(input$file1$datapath, header = TRUE, stringsAsFactors = TRUE)
+      df
     }, error = function(e) {
-      # Return an error object if anything fails (e.g., bad column type)
-      list(error = paste("Error during analysis:", e$message,
-                         "\nPlease check that Time is numeric and Status is integer (e.g., 0/1)."))
+      # Return a safe error message
+      stop(safeError(e))
     })
   })
   
-  # --- Output: Render K-M Plot ---
-  output$km_plot <- renderPlot({
+  # Observer: Update select inputs based on file columns
+  observeEvent(file_data(), {
+    df <- file_data()
+    cols <- colnames(df)
     
-    results <- analysis_results()
+    # Get numeric and factor/character columns
+    numeric_cols <- cols[sapply(df, is.numeric)]
     
-    # Check if the analysis returned an error
-    if (!is.null(results$error)) {
-      # Plot a blank canvas with the error message
-      plot(NULL, xlim=c(0,1), ylim=c(0,1), main="Analysis Error", 
-           type="n", xlab="", ylab="", xaxt="n", yaxt="n")
-      text(0.5, 0.5, results$error, col = "red", cex = 1.2)
-      return()
-    }
+    # For status, we want numeric (0/1) or logical
+    status_cols <- cols[sapply(df, function(x) is.numeric(x) || is.logical(x))]
     
-    # Determine if we should show p-value
-    show_pval <- (results$group_var_name != "None")
+    # For group, we want factor, character, or logical
+    # Also, let's allow numeric columns with few unique values
+    discrete_cols <- cols[sapply(df, function(col) {
+      is.factor(col) || is.character(col) || is.logical(col) ||
+        (is.numeric(col) && length(unique(col)) <= 10)
+    })]
     
-    # Create the plot
-    p <- ggsurvplot(
-      results$fit,
-      data = results$data,
-      pval = show_pval,             # Show p-value if groups exist
-      conf.int = TRUE,             # Show confidence intervals
-      risk.table = TRUE,           # Add risk table
-      risk.table.col = "strata",   # Color risk table by group
-      legend.title = results$group_var_name, # Use column name for legend
-      surv.median.line = "hv",     # Add median survival lines
-      ggtheme = theme_minimal()    # Use a clean theme
-    )
+    # Update inputs
+    updateSelectInput(session, "time_col",
+                      choices = numeric_cols,
+                      selected = character(0))
     
-    # Print the plot
-    print(p)
+    updateSelectInput(session, "status_col",
+                      choices = status_cols,
+                      selected = character(0))
+    
+    updateSelectInput(session, "group_cols",
+                      choices = discrete_cols,
+                      selected = character(0))
+    
+    # Update filter inputs (now plural)
+    updateSelectInput(session, "filter_num_cols",
+                      choices = numeric_cols,
+                      selected = character(0))
+    
+    updateSelectInput(session, "filter_cat_cols",
+                      choices = discrete_cols,
+                      selected = character(0))
   })
   
-  # --- Output: Render Summary Table ---
-  output$surv_summary <- renderPrint({
+  # --- UPDATED: Dynamic UI for MULTIPLE Numeric Filters ---
+  output$filter_num_sliders_ui <- renderUI({
+    df <- file_data()
+    req(df, input$filter_num_cols)
     
-    results <- analysis_results()
+    # Use lapply to create a list of slider inputs
+    lapply(input$filter_num_cols, function(col_name) {
+      col_vals <- na.omit(df[[col_name]])
+      min_val <- floor(min(col_vals, na.rm = TRUE))
+      max_val <- ceiling(max(col_vals, na.rm = TRUE))
+      
+      sliderInput(inputId = paste0("filter_num_", col_name), # Unique ID
+                  label = paste("Select Range for", col_name, ":"),
+                  min = min_val, max = max_val, 
+                  value = c(min_val, max_val))
+    })
+  })
+  
+  # --- UPDATED: Dynamic UI for MULTIPLE Categorical Filters ---
+  output$filter_cat_checkboxes_ui <- renderUI({
+    df <- file_data()
+    req(df, input$filter_cat_cols)
     
-    # Check for error
-    if (!is.null(results$error)) {
-      cat(results$error)
-      return()
+    # Use lapply to create a list of checkbox group inputs
+    lapply(input$filter_cat_cols, function(col_name) {
+      choices <- levels(as.factor(df[[col_name]]))
+      
+      checkboxGroupInput(inputId = paste0("filter_cat_", col_name), # Unique ID
+                         label = paste("Select Values for", col_name, ":"),
+                         choices = choices, 
+                         selected = choices, 
+                         inline = TRUE)
+    })
+  })
+  
+  
+  # --- UPDATED: Reactive values to store the "locked-in" choices
+  # These are set *only* when "Run Analysis" is pressed
+  locked_in_data <- reactiveValues(
+    df = NULL,
+    time_col = NULL,
+    status_col = NULL
+  )
+  
+  # --- UPDATED: Observer to "lock in" data when Run is pressed
+  observeEvent(input$run, {
+    req(file_data(), input$time_col, input$status_col)
+    
+    df <- file_data() # Get the raw data
+    
+    # --- VALIDATION LOGIC ---
+    # 1. Check Time column
+    time_vals <- df[[input$time_col]]
+    validate(
+      need(is.numeric(time_vals), "Validation Error: The selected 'Time' column must be numeric."),
+      need(all(time_vals >= 0, na.rm = TRUE), "Validation Error: The selected 'Time' column contains negative values. Please check your data.")
+    )
+    
+    # 2. Check Status column
+    status_vals <- df[[input$status_col]]
+    unique_status_vals <- unique(na.omit(status_vals))
+    
+    is_logical_status <- is.logical(status_vals)
+    is_numeric_status <- is.numeric(status_vals) && all(unique_status_vals %in% c(0, 1))
+    
+    validate(
+      need(is_logical_status || is_numeric_status, 
+           paste("Validation Error: The selected 'Status' column is not valid.",
+                 "It must be numeric (containing only 0s and 1s) or logical (TRUE/FALSE).",
+                 "\nFound values:", paste(head(unique_status_vals, 5), collapse = ", ")))
+    )
+    # --- END VALIDATION ---
+    
+    # Lock in the raw data and column names
+    locked_in_data$df <- df
+    locked_in_data$time_col <- input$time_col
+    locked_in_data$status_col <- input$status_col
+  })
+  
+  
+  # --- UPDATED: Reactive for Filtering and Grouping Data ---
+  # This now depends on locked_in_data, filter inputs, AND group inputs
+  processed_data <- reactive({
+    # Wait for "Run" to be pressed at least once
+    req(locked_in_data$df) 
+    
+    df <- locked_in_data$df
+    
+    # Apply Numeric Filters (now loops through all selected)
+    if (!is.null(input$filter_num_cols)) {
+      for (col_name in input$filter_num_cols) {
+        input_id <- paste0("filter_num_", col_name)
+        range_val <- input[[input_id]]
+        
+        # Check if the slider UI has rendered and has a value
+        if (!is.null(range_val)) {
+          df <- df[df[[col_name]] >= range_val[1] & df[[col_name]] <= range_val[2] & !is.na(df[[col_name]]), ]
+        }
+      }
     }
     
-    # Show the summary of the fit
-    summary(results$fit)
+    # Apply Categorical Filters (now loops through all selected)
+    if (!is.null(input$filter_cat_cols)) {
+      for (col_name in input$filter_cat_cols) {
+        input_id <- paste0("filter_cat_", col_name)
+        values_to_keep <- input[[input_id]]
+        
+        # Check if the checkbox UI has rendered and has a value
+        if (!is.null(values_to_keep)) {
+          df <- df[as.factor(df[[col_name]]) %in% values_to_keep, ]
+        }
+      }
+    }
+    
+    # Check if filtering resulted in 0 rows
+    validate(
+      need(nrow(df) > 0, "Validation Error: The current filters result in zero rows of data.")
+    )
+    
+    # Apply Group Combination (now reads from input$group_cols)
+    group_cols <- input$group_cols
+    if (!is.null(group_cols) && length(group_cols) > 0) {
+      
+      # Convert any numeric group columns to factor
+      for (col in group_cols) {
+        if(is.numeric(df[[col]])) {
+          df[[col]] <- as.factor(df[[col]])
+        }
+      }
+      
+      if (length(group_cols) == 1) {
+        df$..group_col.. <- as.factor(df[[group_cols[1]]])
+      } else {
+        df$..group_col.. <- apply(df[, group_cols, drop = FALSE], 1, paste, collapse = " - ")
+        df$..group_col.. <- as.factor(df$..group_col..)
+      }
+      
+      # --- NEW VALIDATION: Check for n=1 in any group ---
+      group_counts <- table(df$..group_col..)
+      validate(
+        need(all(group_counts > 1), 
+             paste("Validation Error: The current filters/groups result in at least one group having only one subject (n=1),",
+                   "which is not enough to plot. Please broaden your filters or change grouping.",
+                   "\nGroups with n<2:", paste(names(group_counts[group_counts < 2]), collapse=", "))
+        )
+      )
+      
+    }
+    
+    df # Return the processed data
+  })
+  
+  
+  # --- UPDATED: Reactive: Fit the survival model ---
+  # This will re-run whenever processed_data() OR input$group_cols changes
+  fit <- reactive({
+    # This will run validation checks first
+    df <- processed_data() 
+    
+    time_sym <- as.symbol(locked_in_data$time_col)
+    status_sym <- as.symbol(locked_in_data$status_col)
+    
+    # Check for groups based on the *interactive* input
+    has_group <- !is.null(input$group_cols) && length(input$group_cols) > 0
+    
+    if (has_group) {
+      group_sym <- as.symbol("..group_col..")
+      call <- substitute(
+        survfit(Surv(time, status) ~ group, data = df),
+        list(time = time_sym, status = status_sym, group = group_sym)
+      )
+    } else {
+      call <- substitute(
+        survfit(Surv(time, status) ~ 1, data = df),
+        list(time = time_sym, status = status_sym)
+      )
+    }
+    
+    eval(call)
+  })
+  
+  
+  # --- UPDATED: Reactive: Generate the plot object ---
+  # This will re-run whenever fit() or processed_data() changes
+  plot_obj <- reactive({
+    df <- processed_data()
+    f <- fit()
+    
+    # Check for groups based on the *interactive* input
+    has_group <- !is.null(input$group_cols) && length(input$group_cols) > 0
+    
+    if (has_group) {
+      # --- Logic for grouped analysis ---
+      legend_title <- paste(input$group_cols, collapse = " + ")
+      
+      ggsurvplot(
+        f,
+        data = df,
+        pval = TRUE,
+        conf.int = TRUE,
+        risk.table = TRUE,
+        legend.labs = NULL,
+        legend.title = legend_title,
+        palette = "default", # Use default palette for groups
+        ggtheme = theme_minimal(),
+        risk.table.y.text = FALSE,
+        risk.table.y.text.col = TRUE,
+        ncensor.plot = TRUE
+      )
+      
+    } else {
+      # --- Logic for non-grouped analysis ( ~ 1) ---
+      
+      ggsurvplot(
+        f,
+        data = df,
+        pval = FALSE,
+        conf.int = TRUE,
+        conf.int.style = "ribbon", # Explicitly set CI style
+        color = "black",            # FIX: Set line color directly
+        fill = "grey",              # FIX: Set ribbon fill directly
+        risk.table = TRUE,
+        legend = "none",            # No legend for a single curve
+        ggtheme = theme_minimal(),
+        risk.table.y.text = FALSE,
+        risk.table.y.text.col = TRUE,
+        ncensor.plot = TRUE
+      )
+    }
+  })
+  
+  # Output: Render the Kaplan-Meier plot
+  output$km_plot <- renderPlot({
+    print(plot_obj())
+  })
+  
+  # Output: Render the model summary
+  output$fit_summary <- renderPrint({
+    f <- fit()
+    summary(f)
   })
   
 }
