@@ -80,3 +80,5 @@ install.packages(c("shiny", "survival", "survminer", "ggplot2", "ggpubr", "shiny
 ```r
 shiny::runApp("KM.R")
 ```
+
+### shinyapps.io link: https://yuezhan.shinyapps.io/KMcurve/ 
