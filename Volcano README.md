@@ -2,6 +2,8 @@
 
 This Shiny application provides a complete workflow for generating volcano plots directly from a raw "wide" data file. It automatically performs the correct statistical test (Welch's t-test for 2 groups or ANOVA \+ Tukey's HSD for 3+ groups) to calculate differential expression and p-values.
 
+shinyapps.io link: https://yuezhan.shinyapps.io/Volcano/
+
 ## **Key Features**
 
 * **Single File Upload:** No need to separate your data and metadata. The app accepts one "wide" CSV file.  
