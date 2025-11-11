@@ -1,83 +1,86 @@
-# **Kaplan-Meier Survival Plotter Shiny App**
+Here is a complete `README.md` file for your application. You can copy and paste this text directly into a file named `README.md` and save it in the same directory as your `KM.R` script.
 
-## **Aim of the App**
+-----
 
-This Shiny application provides a fully interactive, code-free web interface for performing and visualizing survival analysis. Its primary aim is to allow researchers, students, and analysts to quickly upload their own survival data (in .csv format), run a base analysis, and then interactively explore different groups and data filters in real-time.
+# Kaplan-Meier Survival Plotter
 
-## **Features**
+This is a R Shiny application for performing and visualizing Kaplan-Meier survival analysis. It allows a user to upload their own data (or use a built-in demo) to generate interactive and publication-ready survival plots using the `survival` and `survminer` packages.
 
-* **Easy Upload:** Upload your survival data as a simple .csv file.  
-* **Dynamic Column Mapping:** The app intelligently filters and populates the dropdown menus based on your CSV's column types.  
-* **Fully Interactive Analysis:** After an initial analysis is run, you can:  
-  * **Change Grouping Interactively:** Select one or more categorical columns (e.g., Sex and Stage) to automatically generate combined groups (e.g., "Male \- Stage I"). The plot will update instantly.  
-  * **Change Filters Interactively:** Filter your dataset in real-time. The plot updates immediately as you adjust sliders or checkboxes.  
-    * **Multi-Numeric Filter:** Select multiple numeric columns (like Age) and use sliders to analyze specific ranges.  
-    * **Multi-Categorical Filter:** Select multiple categorical columns (like Stage) and use checkboxes to include or exclude values.  
-* **Rich Visualization:** Creates a ggplot2-based Kaplan-Meier plot using the survminer package, which includes:  
-  * The survival curve(s).  
-  * Confidence intervals.  
-  * A p-value from the log-rank test (for grouped analysis).  
-  * A risk table showing the number of subjects at risk over time.  
-  * A censor plot.  
-* **Robust Input Validation:** Includes built-in data checks to ensure your 'Time', 'Status', and filtered group sizes are valid, providing user-friendly error messages.  
-* **Model Summary:** View the raw output from the survfit model in a separate "Model Summary" tab, which also updates interactively.
+*(This is a placeholder; you can insert your `image_cae5ff.png` screenshot here)*
 
-## **Requirements**
+-----
 
-Before running the app, you must have the following R packages installed. You can install them all by running this command in your R console:
+## 🚀 Features
 
-install.packages(c("shiny", "survival", "survminer", "ggplot2", "ggpubr", "shinycssloaders"))
+  * **Upload Data:** Easily upload your own dataset in CSV format.
+  * **Demo Data:** Includes a pre-loaded demo dataset to explore the app's functionality immediately.
+  * **Interactive Plotting:** Generates a Kaplan-Meier plot using `ggsurvplot`, complete with:
+      * Confidence Interval (ribbon or step)
+      * Log-Rank Test p-value (for grouped analysis)
+      * Risk Table (Number at risk)
+      * Censoring Plot
+  * **Flexible Grouping:** Stratify the analysis and plot by one or even multiple grouping variables (e.t., `Treatment` + `Sex`).
+  * **Dynamic Filtering:** Interactively filter the source data using sliders for numeric columns (e.g., `Age`) and checkboxes for categorical columns (e.g., `Stage`). The plot and summaries update instantly.
+  * **Time Point Analysis:** Specify a single time point (e.g., `365` days) to get a detailed summary table (Survival Probability, 95% CI, n.risk) for that specific time. This point is also annotated directly on the plot.
+  * **Model Summaries:** View the complete `survfit` model output and log-rank test details in a separate tab.
 
-## **Running the App**
+-----
 
-1. Save the application code as a single file named app.R.  
-2. Open RStudio.  
-3. Ensure your R working directory is set to the folder where you saved app.R.  
-4. Run one of the following commands in the R console:
+## 🛠️ How to Use
 
-\# Option 1: Using the shiny package  
-shiny::runApp()
+Follow these steps to perform an analysis:
 
-\# Option 2: If RStudio is open with the app.R file,  
-\# you can click the "Run App" button in the top-right  
-\# corner of the script editor.
+1.  **Get Data:**
 
-The application will launch in a new window or in your web browser.
+      * Click **"Browse..."** to upload your own CSV file. The data must have:
+          * A numeric "time-to-event" column.
+          * A "status" column (coded as 0=censor, 1=event, or `FALSE`/`TRUE`).
+      * ...Or, click **"Load Demo Data"** to use the built-in example.
 
-## **How to Use the App**
+2.  **Configure Analysis:**
 
-1. **Upload Data:** Click the "Choose CSV File" button and select your data file.  
-2. **Map Core Columns:**  
-   * **Select Time to Event Column:** Choose the numeric column from your data that represents time (e.g., Survival\_Time, Days\_to\_Event).  
-   * **Select Censor/Status Column:** Choose the column representing the event status. This **must** be a numeric column with only 0 (censored) and 1 (event) or a logical TRUE/FALSE column.  
-3. **Run Analysis:** Click the blue "Run Analysis" button. This "locks in" your time and status columns and generates the initial plot for the whole dataset.  
-4. **Explore Interactively (After Running):**  
-   * **Add/Change Groups:** Use the "Select Group Column(s)" dropdown to add or change groups. The plot will update automatically.  
-   * **Filter Data:** Use the "Data Filtering" section to subset your data. The plot will update automatically as you adjust sliders or check boxes.  
-5. **View Results:**  
-   * The **"Kaplan-Meier Plot"** tab will show your interactive survival curve(s), risk table, and censor plot.  
-   * The **"Model Summary"** tab will show the detailed output from the survival::survfit function, which also updates with your changes.
+      * Using the dropdowns, select the **"Time to Event Column"** (e.g., `Survival_Time`).
+      * Select the **"Censor/Status Column"** (e.g., `Event_Status`).
 
-## **Input Data Format**
+3.  **Run Initial Analysis:**
 
-Your CSV file must contain, at a minimum, a numeric time column and a numeric/logical status column. Additional columns for grouping and filtering are optional. Column headers are required.
+      * Click the **"Run Analysis"** button. This validates your inputs and generates the initial plot for the full dataset.
 
-**Example (complex\_survival\_data.csv):**
+4.  **Explore and Interact (Optional):**
 
-Survival\_Time,Event\_Status,Treatment\_Group,Sex,Age,Stage  
-12,1,Group A,Male,65,Stage II  
-24,0,Group A,Female,58,Stage I  
-8,1,Group A,Male,71,Stage III  
-...  
-15,1,Group B,Male,55,Stage II  
-44,1,Group B,Female,62,Stage I  
-...
+      * **Add Groups:** Select one or more columns under **"Select Group Column(s)"** (e.g., `Treatment_Group`) to stratify the plot. The plot will update automatically.
+      * **Filter Data:** Use the **"Data Filtering (Interactive)"** controls to dynamically subset your data. The plot and summaries will update as you change the filters.
+      * **Get Specifics:** Enter a number in the **"Show Details at Time Point"** box. The plot will instantly update with an annotated point, and a summary table will appear below the plot.
 
-* Survival\_Time: Numeric time to event.  
-* Event\_Status: Numeric status, where 1 \= event occurred and 0 \= censored.  
-* Treatment\_Group: A character/factor column (can be used for grouping).  
-* Sex: A second character/factor column (can be used for grouping).  
-* Age: A numeric column (can be used for a numeric filter).  
-* Stage: A character/factor column (can of be used for grouping or a categorical filter).
+5.  **Review Summaries:**
 
-Try this app by using 'example data.csv'!
+      * Review the **"Summary at Specific Time Point"** table directly below the plot.
+      * Click the **"Model Summary"** tab to see the raw `survfit` output and log-rank test statistics.
+
+-----
+
+## 🖥️ Running the App
+
+### Prerequisites
+
+You must have R and, preferably, RStudio installed on your computer.
+
+### Libraries
+
+Before running, you must have the following R packages installed. You can install them all by running this command in your R console:
+
+```r
+install.packages(c("shiny", "survival", "survminer", "ggplot2", "ggpubr", "shinycssloaders", "data.table", "magrittr", "ggrepel"))
+```
+
+### Launching the App
+
+1.  Save the application code as `KM.R`.
+2.  Open the `KM.R` file in RStudio.
+3.  Click the **"Run App"** button that appears at the top of the script editor.
+
+*Alternatively, you can run the app from the R console by setting your working directory to the file's location and running:*
+
+```r
+shiny::runApp("KM.R")
+```
