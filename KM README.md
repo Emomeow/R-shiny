@@ -2,7 +2,7 @@
 
 This is a R Shiny application for performing and visualizing Kaplan-Meier survival analysis. It allows a user to upload their own data (or use a built-in demo) to generate interactive and publication-ready survival plots using the `survival` and `survminer` packages.
 
-*(This is a placeholder; you can insert your `image_cae5ff.png` screenshot here)*
+### shinyapps.io link: https://yuezhan.shinyapps.io/KMcurve/ 
 
 -----
 
@@ -81,4 +81,3 @@ install.packages(c("shiny", "survival", "survminer", "ggplot2", "ggpubr", "shiny
 shiny::runApp("KM.R")
 ```
 
-### shinyapps.io link: https://yuezhan.shinyapps.io/KMcurve/ 
