@@ -2,7 +2,7 @@
 
 This Shiny application provides a complete workflow for generating volcano plots directly from a raw "wide" data file. It uses a robust linear model (lm) and emmeans for statistical analysis, allowing for optional covariate adjustment.
 
-**shinyapps.io link: https://yuezhan.shinyapps.io/Volcano/
+**shinyapps.io link: https://yuezhan.shinyapps.io/Volcano/**
 
 ## **Key Features**
 
