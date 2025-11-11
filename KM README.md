@@ -1,7 +1,3 @@
-Here is a complete `README.md` file for your application. You can copy and paste this text directly into a file named `README.md` and save it in the same directory as your `KM.R` script.
-
------
-
 # Kaplan-Meier Survival Plotter
 
 This is a R Shiny application for performing and visualizing Kaplan-Meier survival analysis. It allows a user to upload their own data (or use a built-in demo) to generate interactive and publication-ready survival plots using the `survival` and `survminer` packages.
@@ -10,7 +6,7 @@ This is a R Shiny application for performing and visualizing Kaplan-Meier surviv
 
 -----
 
-## 🚀 Features
+## Features
 
   * **Upload Data:** Easily upload your own dataset in CSV format.
   * **Demo Data:** Includes a pre-loaded demo dataset to explore the app's functionality immediately.
@@ -26,7 +22,7 @@ This is a R Shiny application for performing and visualizing Kaplan-Meier surviv
 
 -----
 
-## 🛠️ How to Use
+## How to Use
 
 Follow these steps to perform an analysis:
 
@@ -59,7 +55,7 @@ Follow these steps to perform an analysis:
 
 -----
 
-## 🖥️ Running the App
+## Running the App
 
 ### Prerequisites
 
