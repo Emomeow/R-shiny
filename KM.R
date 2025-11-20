@@ -501,6 +501,6 @@ server <- function(input, output, session) {
 # 4. RUN THE APPLICATION
 # ----------------------
 shinyApp(ui = ui, server = server)
-# ----------------------
-shinyApp(ui = ui, server = server)
+
+
 
